@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Minute Minder'),
     );
   }
 }
@@ -37,6 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Duration selectedDuration = const Duration(days: 0,hours: 1,minutes: 0,seconds: 0,milliseconds: 0,microseconds: 0);
   Duration selectedInterval = const Duration(days: 0,hours: 0,minutes: 1,seconds: 0,milliseconds: 0,microseconds: 0);
   late Timer timer;
+  bool timerOn = false;
 
   @override
   void initState() {
@@ -49,7 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
+        title: Text(widget.title,style: TextStyle(color: Theme.of(context).colorScheme.primary,fontWeight: FontWeight.w600),),
       ),
       body: Container(
         padding: const EdgeInsets.fromLTRB(30, 50, 30, 30),
@@ -97,17 +98,45 @@ class _MyHomePageState extends State<MyHomePage> {
                 )
               ],
             ),
-            IconButton(
-              onPressed: (){
-                timer = Timer.periodic(selectedInterval, (Timer t) => playBeep(_audioPlayer,timer,selectedInterval,selectedDuration));
-              },
-              icon: const Icon(Icons.play_circle_fill_rounded,size: 75,),
-            ),
-            IconButton(
-              onPressed: (){
-                if (timer.isActive) timer.cancel();
-              },
-              icon: const Icon(Icons.stop_circle_rounded,size: 75,),
+            const SizedBox(height: 100,),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                if (!timerOn)
+                Column(
+                  children: [
+                    const Text("START",style: TextStyle(fontSize: 24),),
+                    const SizedBox(height: 5,),
+                    IconButton(
+                      onPressed: (){
+                        timer = Timer.periodic(selectedInterval, (Timer t) => playBeep());
+                        setState(() {
+                          timerOn = true;
+                        });
+                      },
+                      icon: const Icon(Icons.play_circle_fill_rounded,size: 100,),
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ],
+                ),
+                if (timerOn)
+                Column(
+                  children: [
+                    const Text("STOP",style: TextStyle(fontSize: 24),),
+                    const SizedBox(height: 5,),
+                    IconButton(
+                      onPressed: (){
+                        if (timer.isActive) timer.cancel();
+                        setState(() {
+                          timerOn = false;
+                        });
+                      },
+                      icon: const Icon(Icons.stop_circle_rounded,size: 100,),
+                      color: Theme.of(context).colorScheme.secondary,
+                    ),
+                  ],
+                )
+              ],
             ),
           ],
         ),
@@ -122,14 +151,26 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
-}
-
-Future<void> playBeep(AudioPlayer audioPlayer,Timer timer, Duration selectedInterval, Duration selectedDuration) async {
-  if (selectedInterval.inSeconds *timer.tick > selectedDuration.inSeconds){
-    timer.cancel();
-  } else {
+  Future<void> playBeep() async {
     print(timer.tick);
-    await audioPlayer.seek(Duration.zero);
-    await audioPlayer.play();
+    if (selectedInterval.inSeconds *timer.tick > selectedDuration.inSeconds){
+      timer.cancel();
+      setState(() {
+        timerOn = false;
+      });
+    }
+    else if (selectedInterval.inSeconds *timer.tick == selectedDuration.inSeconds){
+      await _audioPlayer.seek(Duration.zero);
+      await _audioPlayer.play();
+      timer.cancel();
+      setState(() {
+        timerOn = false;
+      });
+    }
+    else {
+      await _audioPlayer.seek(Duration.zero);
+      await _audioPlayer.play();
+    }
   }
+
 }
